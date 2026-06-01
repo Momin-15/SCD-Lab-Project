@@ -1,0 +1,175 @@
+package lab_project;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.EventQueue;
+import java.awt.Font;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+
+public class ExpenseTracker extends JFrame {
+
+    private JPanel contentPane;
+    private JTextField txtDescription;
+    private JTextField txtAmount;
+    private JComboBox<String> comboCategory;
+    
+    // Core Data Structures for Data Sharing
+    private JTable table;
+    private DefaultTableModel tableModel;
+    private JLabel lblTotalDisplay;
+    private double totalExpenses = 0.0;
+
+    public static void main(String[] args) {
+        EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                try {
+                    ExpenseTracker frame = new ExpenseTracker();
+                    frame.setVisible(true);
+                } catch (Exception e) {
+                    e.printStackTrace;
+                }
+            }
+        });
+    }
+
+    public ExpenseTracker() {
+        setTitle("Personal Expense Tracker Dashboard");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setBounds(100, 100, 600, 500);
+        
+        contentPane = new JPanel();
+        contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+        contentPane.setLayout(new BorderLayout(0, 0));
+        setContentPane(contentPane);
+
+        // Initialize the Tab Container Component
+        JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+        contentPane.add(tabbedPane, BorderLayout.CENTER);
+
+        // Shared Database Table Layer initialization
+        String[] columnNames = {"Description", "Amount ($)", "Category"};
+        tableModel = new DefaultTableModel(columnNames, 0);
+        table = new JTable(tableModel);
+
+        // --- TAB 1: ADD EXPENSE FORM ---
+        JPanel tabAdd = new JPanel();
+        tabAdd.setBorder(new EmptyBorder(30, 50, 30, 50));
+        tabbedPane.addTab("Add Expense", null, tabAdd, "Input field form container");
+        tabAdd.setLayout(new GridLayout(5, 2, 15, 25)); // Clean tabular alignment grid
+
+        JLabel lblDescription = new JLabel("Description:");
+        lblDescription.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        tabAdd.add(lblDescription);
+
+        txtDescription = new JTextField();
+        txtDescription.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        tabAdd.add(txtDescription);
+        txtDescription.setColumns(10);
+
+        JLabel lblAmount = new JLabel("Amount ($):");
+        lblAmount.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        tabAdd.add(lblAmount);
+
+        txtAmount = new JTextField();
+        txtAmount.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        tabAdd.add(txtAmount);
+        txtAmount.setColumns(10);
+
+        JLabel lblCategory = new JLabel("Category:");
+        lblCategory.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        tabAdd.add(lblCategory);
+
+        String[] categories = {"Food & Dining", "Rent & Utilities", "Entertainment", "Transportation", "Other"};
+        comboCategory = new JComboBox<>(categories);
+        comboCategory.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        tabAdd.add(comboCategory);
+
+        // Empty placeholder element to force button right alignment in the grid
+        tabAdd.add(new JLabel("")); 
+
+        JButton btnAdd = new JButton("Add Expense");
+        btnAdd.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        btnAdd.setBackground(new Color(46, 204, 113)); // Clean Emerald Green
+        btnAdd.setForeground(Color.WHITE);
+        tabAdd.add(btnAdd);
+
+        // --- TAB 2: VIEW HISTORY ---
+        JPanel tabHistory = new JPanel();
+        tabHistory.setLayout(new BorderLayout(0, 0));
+        tabbedPane.addTab("View History", null, tabHistory, "Tabulated expense history list");
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        tabHistory.add(scrollPane, BorderLayout.CENTER);
+
+        // --- TAB 3: SUMMARY DASHBOARD ---
+        JPanel tabSummary = new JPanel();
+        tabSummary.setBorder(new EmptyBorder(50, 20, 50, 20));
+        tabbedPane.addTab("Summary Dashboard", null, tabSummary, "Financial analytical summaries");
+        tabSummary.setLayout(new BorderLayout(0, 0));
+
+        JLabel lblTotalTitle = new JLabel("Total Cumulative Expenses", SwingConstants.CENTER);
+        lblTotalTitle.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+        tabSummary.add(lblTotalTitle, BorderLayout.NORTH);
+
+        lblTotalDisplay = new JLabel("$0.00", SwingConstants.CENTER);
+        lblTotalDisplay.setForeground(new Color(231, 76, 60)); // Crimson Accent
+        lblTotalDisplay.setFont(new Font("Segoe UI Black", Font.BOLD, 54));
+        tabSummary.add(lblTotalDisplay, BorderLayout.CENTER);
+
+        // --- BACKEND ACTION LOGIC MECHANICS ---
+        btnAdd.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                String desc = txtDescription.getText().trim();
+                String amountStr = txtAmount.getText().trim();
+                String category = (String) comboCategory.getSelectedItem();
+
+                // Validation Guard Blocks
+                if (desc.isEmpty() || amountStr.isEmpty()) {
+                    JOptionPane.showMessageDialog(ExpenseTracker.this, "Please fill out all field cells before saving.", "Input Error", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                try {
+                    double amount = Double.parseDouble(amountStr);
+                    if (amount <= 0) {
+                        JOptionPane.showMessageDialog(ExpenseTracker.this, "Please enter a positive numeric value greater than zero.", "Input Error", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+
+                    // 1. Inject row straight into Tab 2's underlying shared data model
+                    Object[] newRow = {desc, String.format("%.2f", amount), category};
+                    tableModel.addRow(newRow);
+
+                    // 2. Refresh total state tracker memory allocation
+                    totalExpenses += amount;
+                    lblTotalDisplay.setText(String.format("$%.2f", totalExpenses));
+
+                    // 3. Clear fields to receive the next input transaction stream
+                    txtDescription.setText("");
+                    txtAmount.setText("");
+                    
+                    // Show confirmation success toast banner context
+                    JOptionPane.showMessageDialog(ExpenseTracker.this, "Expense item successfully added to ledger archive!", "Success", JOptionPane.INFORMATION_MESSAGE);
+
+                } catch (NumberFormatException nfe) {
+                    JOptionPane.showMessageDialog(ExpenseTracker.this, "Invalid digit format detected in Amount cell field.", "Type Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+    }
+}
